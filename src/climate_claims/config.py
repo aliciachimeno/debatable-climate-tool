@@ -10,12 +10,12 @@ load_dotenv()
 @dataclass(frozen=True)
 class Settings:
     # --- Open WebUI connection (from environment / .env) ---
-    url: str = os.environ.get("OPENWEBUI_URL", "http://localhost:3000").rstrip("/")
-    api_key: str = os.environ.get("OPENWEBUI_API_KEY", "")
-    model: str = os.environ.get("OPENWEBUI_MODEL", "")
+    url: str = os.environ.get("OPENWEBUI_URL", "https://gepeto.bsc.es/").rstrip("/")
+    api_key: str = os.environ.get("OPENWEBUI_API_KEY", "sk-d0cd19326c6b49cbb5741890446abbb4")
+    model: str = os.environ.get("OPENWEBUI_MODEL", "Qwen3.8-27B")
 
     # --- paths (relative to where you run the command) ---
-    raw_dir: Path = Path("data/raw")
+    raw_dir: Path = Path("data/raw/01_assessments/ipcc_ar6_wg1")
     index_dir: Path = Path("data/index")
     runs_dir: Path = Path("runs")
 

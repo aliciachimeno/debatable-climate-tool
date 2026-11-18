@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterator
 
 from pypdf import PdfReader
+import fitz  # pip install pymupdf
 
 
 def read_pdf(path: Path) -> Iterator[tuple[int, str]]:
@@ -21,8 +22,10 @@ def iter_documents(raw_dir: Path) -> list[Path]:
     return sorted(p for p in raw_dir.iterdir() if p.suffix.lower() in READERS)
 
 
-def read_pages(path: Path) -> Iterator[tuple[int, str]]:
-    return READERS[path.suffix.lower()](path)
+def read_pages(path):
+    with fitz.open(path) as doc:
+        for i, page in enumerate(doc, start=1):
+            yield i, page.get_text("text")
 
 
 def file_sha256(path: Path) -> str:

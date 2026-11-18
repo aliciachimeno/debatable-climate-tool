@@ -1,0 +1,62 @@
+====================================================================
+
+[T1] IPCC_2021_AR6-WG1_SPM
+Title:    AR6 WGI Summary for Policymakers (SPM)
+Source:   IPCC | 2021 | https://www.ipcc.ch/report/ar6/wg1/
+Contains: Headline findings of the report, approved line by line by
+          governments. Organized in four parts: A) current state of the
+          climate, B) possible climate futures, C) climate information for
+          risk assessment and regional adaptation, D) limiting future
+          climate change.
+Key claims: [fill in: statement ID (e.g. A.1), confidence/likelihood term,
+          and the chapter section it traces to]
+Evidence: Synthesis; each statement points to chapter and TS sections.
+Use for:  Short, citable headline claims. Always trace back to the Ch2/Ch3
+          sections for the underlying evidence.
+Limitations: Summary level only; numbers and caveats live in chapters.
+Status:   Peer-reviewed by experts, approved by governments.
+
+[T1] IPCC_2021_AR6-WG1_TS
+Title:    AR6 WGI Technical Summary (TS)
+Source:   IPCC | 2021 | https://www.ipcc.ch/report/ar6/wg1/
+Contains: Intermediate-detail summary between the SPM and the chapters,
+          with key figures, boxes and cross-references to chapter sections.
+          Follows a similar structure to the SPM (framing, current state,
+          possible futures, regional information, limiting climate change).
+Key claims: [fill in: TS section, confidence level, chapter references]
+Evidence: Synthesis with traceability to chapter sections.
+Use for:  Finding where in the chapters a given SPM claim is supported;
+          figures and tables that summarize the evidence.
+Limitations: Not the primary source; cite the chapter for evidence.
+
+[T1] IPCC_2021_AR6-WG1_Ch01_Framing-context-methods
+Title:    AR6 WGI Chapter 1: Framing, Context and Methods
+Source:   IPCC | 2021 | https://www.ipcc.ch/report/ar6/wg1/
+Contains: Scientific context since earlier assessments, how AR6 treats
+          uncertainty (calibrated confidence and likelihood language),
+          the scenario framework (SSPs), data sources and methods.
+Key claims: [fill in with section/page]
+Evidence: Methodological and framing; few direct data claims.
+Use for:  Interpreting IPCC confidence/likelihood terms; scenario definitions;
+          understanding what each dataset or model type means.
+Limitations: Does not itself provide the headline evidence (see Ch2, Ch3).
+
+[T1] IPCC_2021_AR6-WG1_Ch02_Changing-state-climate-system
+Title:    AR6 WGI Chapter 2: Changing State of the Climate System
+Source:   IPCC | 2021 | https://www.ipcc.ch/report/ar6/wg1/
+Contains: Observed changes across the climate system: greenhouse gas
+          concentrations, atmosphere, ocean, cryosphere, land and
+          biosphere, with paleoclimate context.
+Key claims: [fill in with section/page and confidence level]
+Evidence: Observational records, reanalyses, paleoclimate proxies.
+Data provided: Variables, periods and uncertainty ranges [fill in per figure/table]
+Use for:  Claims about WHAT has changed (temperature, CO2, sea level, ice).
+
+[T1] IPCC_2021_AR6-WG1_Ch03_Human-influence-climate-system
+Title:    AR6 WGI Chapter 3: Human Influence on the Climate System
+Source:   IPCC | 2021 | https://www.ipcc.ch/report/ar6/wg1/
+Contains: Model evaluation and detection and attribution of observed
+          changes to human influence across the climate system.
+Key claims: [fill in with section/page and confidence level]
+Evidence: Attribution studies + CMIP6 model comparison with observations.
+Use for:  Claims about WHY changes occurred (human attribution).
