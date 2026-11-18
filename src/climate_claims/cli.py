@@ -28,7 +28,12 @@ def _print_evidence(result: dict) -> None:
         for f in e["findings"]:
             p = f["pages"]
             page = f"p.{p[0]}" if len(p) == 1 else f"pp.{p[0]}-{p[-1]}"
-            print(f"  - {f['statement']}\n    \"{f['quote']}\" ({f['document']}, {page})")
+            tags = [t for t in (f.get("likelihood"), f.get("confidence") and f"{f['confidence']} confidence",
+                                "stated as fact" if f.get("stated_as_fact") else None) if t]
+            extra = f"  [{'; '.join(tags)}]" if tags else ""
+            print(f"  - {f['statement']}\n    \"{f['quote']}\" ({f['document']}, {page}){extra}")
+            for o in f.get("also_in", []):
+                print(f"      also in {o['document']}, p.{o['pages'][0]}")
         if e.get("error"):
             print(f"  (model error: {e['error']})")
         elif not e["findings"]:
@@ -78,6 +83,11 @@ def cmd_run(args):
     print(f"\nSaved in: {run_dir}", file=sys.stderr)
 
 
+def cmd_serve(args):
+    import uvicorn
+    uvicorn.run("climate_claims.web.app:app", host=args.host, port=args.port)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="claims", description="Climate claim analysis with verified evidence")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -100,9 +110,14 @@ def main(argv=None):
     s.add_argument("claim")
     s.set_defaults(func=cmd_run)
 
+    s = sub.add_parser("serve", help="start the web interface")
+    s.add_argument("--host", default="127.0.0.1")
+    s.add_argument("--port", type=int, default=8000)
+    s.set_defaults(func=cmd_serve)
+
     args = p.parse_args(argv)
     args.func(args)
 
 
 if __name__ == "__main__":
-    main()
+    main()

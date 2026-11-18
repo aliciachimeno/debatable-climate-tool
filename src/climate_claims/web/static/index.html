@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debatable — climate claims, checked against official sources</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <a class="brand" href="/" aria-label="Debatable, new claim">Debatable<span>.</span></a>
+    <button class="link-btn" id="new-claim" type="button" hidden>+ NEW CLAIM</button>
+    <span class="mono muted" id="tagline">CLIMATE CLAIMS · OFFICIAL SOURCES ONLY</span>
+  </header>
+
+  <main>
+    <section id="home" class="home">
+      <h1 class="home-title">What does the claim say,<br>and what does the science say?</h1>
+      <form id="claim-form" class="claim-box">
+        <label class="mono accent" for="claim">CLAIM TO DEBATE</label>
+        <div class="claim-row">
+          <textarea id="claim" rows="2" maxlength="1000" placeholder="Paste a sentence, a headline or a quote" required></textarea>
+          <button class="go" type="submit" aria-label="Analyse this claim">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </form>
+      <ol class="steps mono muted">
+        <li><span class="accent">01</span> Read the claim</li>
+        <li><span class="accent">02</span> Find official sources</li>
+        <li><span class="accent">03</span> Verify every quote</li>
+      </ol>
+      <p class="notice" id="index-notice" hidden></p>
+    </section>
+
+    <section id="result" class="result" hidden>
+      <div class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab" role="tab" id="tab-debate" aria-controls="panel-debate" aria-selected="true" type="button">Debate</button>
+        <button class="tab" role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="false" type="button" tabindex="-1">Scientific evidence <span class="badge mono" id="evidence-badge" hidden></span></button>
+      </div>
+      <div class="sheet">
+        <div id="panel-debate" role="tabpanel" aria-labelledby="tab-debate"></div>
+        <div id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" hidden></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

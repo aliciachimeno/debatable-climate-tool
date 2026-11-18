@@ -11,7 +11,7 @@ load_dotenv()
 class Settings:
     # --- Open WebUI connection (from environment / .env) ---
     url: str = os.environ.get("OPENWEBUI_URL", "https://gepeto.bsc.es/").rstrip("/")
-    api_key: str = os.environ.get("OPENWEBUI_API_KEY", "sk-d0cd19326c6b49cbb5741890446abbb4")
+    api_key: str = os.environ.get("OPENWEBUI_API_KEY", "")
     model: str = os.environ.get("OPENWEBUI_MODEL", "Qwen3.8-27B")
 
     # --- paths (relative to where you run the command) ---
@@ -30,4 +30,4 @@ class Settings:
     llm_timeout: int = int(os.environ.get("LLM_TIMEOUT", "600"))   # seconds
 
 
-settings = Settings()
+settings = Settings()

@@ -81,3 +81,7 @@ class Finding:
     document: str
     pages: list[int]
     passage_id: str
+    likelihood: str | None = None       # IPCC calibrated term found in the quote
+    confidence: str | None = None
+    stated_as_fact: bool = False
+    also_in: list[dict] = field(default_factory=list)   # same quote found in other documents

@@ -25,7 +25,7 @@ class Store:
         self.db_file = self.dir / "sentences.db"
         self.vecs_file = self.dir / "vectors.npy"
         self.ids_file = self.dir / "ids.npy"
-        self.db = sqlite3.connect(self.db_file)
+        self.db = sqlite3.connect(self.db_file, check_same_thread=False)
         self.db.executescript(SCHEMA)
 
     @classmethod
@@ -82,4 +82,4 @@ class Store:
 
     def stats(self) -> list[tuple[str, int, int]]:
         return self.db.execute(
-            "SELECT doc, COUNT(*), COALESCE(SUM(embedded),0) FROM sentences GROUP BY doc").fetchall()
+            "SELECT doc, COUNT(*), COALESCE(SUM(embedded),0) FROM sentences GROUP BY doc").fetchall()

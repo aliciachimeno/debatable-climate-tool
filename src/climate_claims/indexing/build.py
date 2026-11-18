@@ -3,7 +3,7 @@ import numpy as np
 from ..config import settings
 from ..embedding import Embedder
 from .loaders import file_sha256, iter_documents, read_pages
-from .sentences import split_pages
+from .sentences import sentence_kind, split_pages
 from .store import Store
 
 
@@ -31,7 +31,8 @@ def build_index(rebuild: bool = False) -> None:
         sentences = split_pages(read_pages(path))
         if not sentences:
             print(f"       WARNING: no text extracted from {doc} (scanned PDF? needs OCR)")
-        rows = [(i, page, text, int(len(text.split()) >= settings.min_words))
+        rows = [(i, page, text,
+                 int(sentence_kind(text) == "body" and len(text.split()) >= settings.min_words))
                 for i, (page, text) in enumerate(sentences)]
         store.insert_sentences(doc, rows)
 
@@ -45,4 +46,4 @@ def build_index(rebuild: bool = False) -> None:
         store.mark_done(doc, digest)              # ... then the DB commit
         print(f"       {len(rows)} sentences ({len(todo)} embedded)")
 
-    print(f"Index holds {len(ids)} embedded sentences")
+    print(f"Index holds {len(ids)} embedded sentences")
