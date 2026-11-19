@@ -5,7 +5,12 @@ const TYPE_LABEL = {
   descriptive_factual: "Descriptive / factual", causal_attribution: "Causal attribution",
   predictive: "Predictive", policy_value: "Policy / value",
 };
-const ABOUT_LABEL = { claim: "THE CLAIM", ambiguity: "AMBIGUITY", assumption: "ASSUMPTION" };
+const ABOUT_LABEL = { claim: "THE CLAIM", implied_argument: "IMPLIED ARGUMENT", ambiguity: "AMBIGUITY", assumption: "ASSUMPTION" };
+const STANCE_LABEL = { supports: "Supports this", refutes: "Contradicts this", context: "Context" };
+// Evidence is shown one group at a time: the claim first, the rest behind a button.
+const EVIDENCE_GROUPS = [["claim", "The claim"], ["implied_argument", "Implied argument"],
+  ["ambiguity", "Ambiguities"], ["assumption", "Assumptions"]];
+let evidenceGroup = "claim";
 
 let run = 0;            // increments with every new claim, so stale responses are ignored
 let pollTimer = null;
@@ -123,6 +128,7 @@ function findingNode(f) {
     el("p", { class: "stmt", text: f.statement }),
     el("blockquote", { text: `“${f.quote}”` }),
     el("div", { class: "meta" },
+      STANCE_LABEL[f.stance] ? el("span", { class: "stance " + f.stance, text: STANCE_LABEL[f.stance] }) : null,
       el("span", { text: `${prettyDoc(f.document)} · ${pageText(f.pages)}` }),
       strength.length ? el("span", { class: "strength", text: strength.join(" · ") }) : null),
     also.length ? el("details", { class: "also" },
@@ -132,6 +138,11 @@ function findingNode(f) {
 function entryNode(e) {
   return el("section", { class: "q" },
     el("h2", {}, el("span", { class: "tag", text: ABOUT_LABEL[e.about] || e.about.toUpperCase() }), e.query),
+    e.supporting || e.refuting ? el("details", { class: "also looks-for" },
+      el("summary", { text: "What we looked for" }),
+      el("ul", {},
+        e.supporting ? el("li", { text: "Supporting evidence would say: " + e.supporting }) : null,
+        e.refuting ? el("li", { text: "Refuting evidence would say: " + e.refuting }) : null)) : null,
     e.findings.map(findingNode),
     e.error ? el("p", { class: "errline", text: "The model could not answer this question (" + e.error + ")." })
       : !e.findings.length ? el("p", { class: "empty", text: "No verified evidence in the indexed documents." }) : null);
@@ -148,7 +159,24 @@ function renderEvidence(claim, entries, state) {
       el("span", { class: "mono muted", text: state.total ? `SEARCHING OFFICIAL DOCUMENTS · ${state.done} OF ${state.total}` : "SEARCHING OFFICIAL DOCUMENTS…" }),
       el("div", { class: "bar" }, el("i", { style: `width:${pct}%` }))));
   }
-  const body = el("div", { class: "rows" }, entries.map(entryNode));
+  // one button per group; while the search runs all show, afterwards only groups that exist
+  const groups = EVIDENCE_GROUPS.filter(([key]) => state.running || entries.some((e) => e.about === key));
+  if (!groups.some(([key]) => key === evidenceGroup)) evidenceGroup = groups.length ? groups[0][0] : "claim";
+  if (groups.length) {
+    panel.append(el("div", { class: "chips", role: "tablist", "aria-label": "Evidence by question" },
+      groups.map(([key, label]) => {
+        const items = entries.filter((e) => e.about === key);
+        const n = items.reduce((sum, e) => sum + e.findings.length, 0);
+        return el("button", {
+          class: "chip", type: "button", role: "tab", "aria-selected": key === evidenceGroup ? "true" : "false",
+          onclick: () => { evidenceGroup = key; renderEvidence(claim, entries, state); },
+        }, label, el("span", { class: "count mono", text: items.length ? String(n) : "…" }));
+      })));
+  }
+  if (state.notice) panel.append(el("p", { class: "empty", role: "status", text: state.notice }));
+  const shown = entries.filter((e) => e.about === evidenceGroup);
+  const body = el("div", { class: "rows" }, shown.length || !state.running ? shown.map(entryNode)
+    : el("p", { class: "loading", role: "status", text: "Searching this part…", style: "margin-top:24px" }));
   panel.append(body);
   if (state.error) renderError(panel, "Could not complete the evidence search: " + state.error, state.retry);
   const total = entries.reduce((n, e) => n + e.findings.length, 0);
@@ -166,7 +194,8 @@ function pollEvidence(jobId, claim, myRun, retry) {
       if (myRun !== run) return;
       const running = j.status === "running";
       const entries = j.status === "done" ? j.result.evidence : j.entries;
-      renderEvidence(claim, entries, { running, done: j.done, total: j.total, error: j.status === "error" ? j.error : null, retry });
+      renderEvidence(claim, entries, { running, done: j.done, total: j.total, error: j.status === "error" ? j.error : null, retry,
+        notice: j.status === "done" ? j.result.plan_error : null });
       if (running) pollTimer = setTimeout(tick, 1500);
     } catch (err) {
       if (myRun === run) renderEvidence(claim, [], { running: false, error: err.message, retry });
@@ -193,6 +222,7 @@ async function analyseClaim(claim) {
   clearTimeout(pollTimer);
   $("home").hidden = true; $("result").hidden = false; $("new-claim").hidden = false; $("tagline").hidden = true;
   $("evidence-badge").hidden = true;
+  evidenceGroup = "claim";
   clear($("panel-evidence"));
   showTab("debate");
   renderDebateLoading(claim);

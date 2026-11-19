@@ -28,6 +28,6 @@ class Settings:
     top_k: int = 6             # sentence hits per query
 
     llm_timeout: int = int(os.environ.get("LLM_TIMEOUT", "600"))   # seconds
+    llm_workers: int = int(os.environ.get("LLM_WORKERS", "4"))     # parallel LLM calls (1 = sequential)
 
-
-settings = Settings()
+settings = Settings()

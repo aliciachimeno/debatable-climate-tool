@@ -84,4 +84,36 @@ class Finding:
     likelihood: str | None = None       # IPCC calibrated term found in the quote
     confidence: str | None = None
     stated_as_fact: bool = False
-    also_in: list[dict] = field(default_factory=list)   # same quote found in other documents
+    also_in: list[dict] = field(default_factory=list)   # same quote found in other documents
+    also_in: list[dict] = field(default_factory=list)   # same quote found in other documents
+    stance: str | None = None           # supports | refutes | context, relative to the proposition
+
+
+# ---- evidence plan: what to look for, derived from the analysis ----
+NEED_ORIGINS = ("claim", "implied_argument", "ambiguity", "assumption")   # also the display order
+STANCES = ("supports", "refutes", "context")
+
+
+@dataclass
+class EvidenceNeed:
+    """One checkable proposition derived from the analysis, and what evidence for/against it looks like."""
+    id: str
+    proposition: str
+    origin: str                  # which part of the analysis it tests (NEED_ORIGINS)
+    source_text: str             # the words in the analysis it comes from
+    supporting: str              # what a source supporting the proposition would say
+    refuting: str                # what a source refuting it would say
+    queries: list[str]           # declarative retrieval queries, in the documents' vocabulary
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "EvidenceNeed":
+        try:
+            proposition = str(d["proposition"]).strip()
+            origin = d["origin"]
+            queries = list(dict.fromkeys(q.strip() for q in d["queries"] if isinstance(q, str) and q.strip()))
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Invalid evidence need: {e!r}") from e
+        if not proposition or origin not in NEED_ORIGINS or not queries:
+            raise ValueError(f"Invalid evidence need: {d!r}")
+        return cls("", proposition, origin, str(d.get("source_text", "")).strip(),
+                   str(d.get("supporting", "")).strip(), str(d.get("refuting", "")).strip(), queries[:4])

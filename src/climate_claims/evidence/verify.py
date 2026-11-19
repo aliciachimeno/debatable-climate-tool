@@ -2,6 +2,7 @@ import re
 
 from ..schemas import Finding, Window
 from .strength import strength
+from ..schemas import STANCES, Finding, Window
 
 MAX_QUOTE_WORDS = 40
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
@@ -52,5 +53,6 @@ def verify(raw_findings: list, windows: list[Window]) -> list[Finding]:
             continue
         pages = locate(quote, w)
         if pages:
-            good.append(Finding(statement, quote, w.doc, pages, w.id, **strength(quote)))
+            stance = f.get("stance") if f.get("stance") in STANCES else None
+            good.append(Finding(statement, quote, w.doc, pages, w.id, **strength(quote), stance=stance))
     return good

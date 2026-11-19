@@ -28,7 +28,8 @@ def _print_evidence(result: dict) -> None:
         for f in e["findings"]:
             p = f["pages"]
             page = f"p.{p[0]}" if len(p) == 1 else f"pp.{p[0]}-{p[-1]}"
-            tags = [t for t in (f.get("likelihood"), f.get("confidence") and f"{f['confidence']} confidence",
+            tags = [t for t in (f.get("stance"), f.get("likelihood"),
+                                f.get("confidence") and f"{f['confidence']} confidence",
                                 "stated as fact" if f.get("stated_as_fact") else None) if t]
             extra = f"  [{'; '.join(tags)}]" if tags else ""
             print(f"  - {f['statement']}\n    \"{f['quote']}\" ({f['document']}, {page}){extra}")
@@ -120,4 +121,4 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    main()
+    main()

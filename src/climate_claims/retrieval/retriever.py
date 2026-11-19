@@ -4,12 +4,31 @@ from ..config import settings
 from ..embedding import Embedder
 from ..indexing.store import Store
 from ..schemas import Window
+import os
+from functools import lru_cache
 
+
+
+@lru_cache(maxsize=1)
+def _embedder():
+    return Embedder()                       # model is loaded once per process
+
+
+@lru_cache(maxsize=2)
+def _retriever(index_stamp: float) -> "Retriever":
+    return Retriever()
+
+
+def get_retriever() -> "Retriever":
+    """Shared Retriever; rebuilt automatically if the index files change on disk."""
+    ids_file = Store().ids_file
+    stamp = os.path.getmtime(ids_file) if ids_file.exists() else 0.0
+    return _retriever(stamp)
 
 class Retriever:
     def __init__(self, store: Store | None = None, embedder=None):
         self.store = store or Store()
-        self.embedder = embedder or Embedder()
+        self.embedder = embedder or _embedder()
         self.ids, self.vecs = self.store.load_vectors()
         if self.vecs is None or len(self.ids) == 0:
             raise SystemExit("The index is empty. Run: claims index")
@@ -42,3 +61,4 @@ class Retriever:
         for w in windows:
             w.sentences = self.store.window_rows(w.doc, w.lo, w.hi)
         return sorted(windows, key=lambda w: -w.score)
+
