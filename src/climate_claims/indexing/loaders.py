@@ -2,13 +2,13 @@ import hashlib
 from pathlib import Path
 from typing import Iterator
 
-from pypdf import PdfReader
-import fitz  # pip install pymupdf
+import pymupdf
 
 
 def read_pdf(path: Path) -> Iterator[tuple[int, str]]:
-    for page_no, page in enumerate(PdfReader(path).pages, 1):
-        yield page_no, page.extract_text() or ""
+    with pymupdf.open(path) as doc:
+        for page_no, page in enumerate(doc, start=1):
+            yield page_no, page.get_text("text")
 
 
 # add new formats here (e.g. ".txt": read_txt) and the indexer picks them up
@@ -22,10 +22,8 @@ def iter_documents(raw_dir: Path) -> list[Path]:
     return sorted(p for p in raw_dir.iterdir() if p.suffix.lower() in READERS)
 
 
-def read_pages(path):
-    with fitz.open(path) as doc:
-        for i, page in enumerate(doc, start=1):
-            yield i, page.get_text("text")
+def read_pages(path: Path) -> Iterator[tuple[int, str]]:
+    return READERS[Path(path).suffix.lower()](path)
 
 
 def file_sha256(path: Path) -> str:

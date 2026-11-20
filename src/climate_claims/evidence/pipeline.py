@@ -10,6 +10,8 @@ from ..retrieval.retriever import Retriever
 from ..schemas import Analysis, EvidenceNeed, Window
 from .dedupe import dedupe_findings
 from .verify import verify
+from ..sources import add_link
+
 
 MAX_WINDOWS = 8       # passages shown to the model per evidence need
 
@@ -62,7 +64,8 @@ def _ask(system: str, need: EvidenceNeed, windows: list[Window]) -> dict:
     try:
         data = chat_json(system, _prompt(need, windows), temperature=0.1)
         raw = data.get("findings", [])
-        entry["findings"] = [asdict(f) for f in verify(raw if isinstance(raw, list) else [], windows)]
+        verified = verify(raw if isinstance(raw, list) else [], windows)
+        entry["findings"] = [asdict(add_link(f)) for f in verified]
     except (ValueError, requests.RequestException) as e:   # bad JSON, timeout, network
         entry["error"] = str(e)
     return entry

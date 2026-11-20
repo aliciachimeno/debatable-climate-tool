@@ -16,6 +16,7 @@ class Settings:
 
     # --- paths (relative to where you run the command) ---
     raw_dir: Path = Path("data/raw/01_assessments/ipcc_ar6_wg1")
+    sources_file: Path = Path("data/raw/sources.json")
     index_dir: Path = Path("data/index")
     runs_dir: Path = Path("runs")
 
