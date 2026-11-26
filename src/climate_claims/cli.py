@@ -84,6 +84,12 @@ def cmd_run(args):
     print(f"\nSaved in: {run_dir}", file=sys.stderr)
 
 
+def cmd_export_web(args):
+    from .web_export import export_web
+    out = export_web(args.out)
+    print(f"Site written to {out}")
+
+
 def cmd_serve(args):
     import uvicorn
     uvicorn.run("climate_claims.web.app:app", host=args.host, port=args.port)
@@ -111,13 +117,21 @@ def main(argv=None):
     s.add_argument("claim")
     s.set_defaults(func=cmd_run)
 
+    s = sub.add_parser("export-web", help="build the static site (docs/) for GitHub Pages from the index")
+    s.add_argument("--out", default=None, help=f"site folder (default: {settings.web_dir})")
+    s.set_defaults(func=cmd_export_web)
+
     s = sub.add_parser("serve", help="start the web interface")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8000)
     s.set_defaults(func=cmd_serve)
 
     args = p.parse_args(argv)
-    args.func(args)
+    from .llm import LLMError
+    try:
+        args.func(args)
+    except LLMError as e:
+        sys.exit(f"{e}\nCheck LLM_PROVIDER, LLM_BASE_URL, LLM_API_KEY and LLM_MODEL (see .env.example).")
 
 
 if __name__ == "__main__":

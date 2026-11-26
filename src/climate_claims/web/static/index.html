@@ -3,18 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Debatable — climate claims, checked against official sources</title>
+<title>Debatable climate change tool</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="static/app.css">
 </head>
 <body>
 <div class="page">
   <header class="top">
-    <a class="brand" href="/" aria-label="Debatable, new claim">Debatable<span>.</span></a>
+    <a class="brand" href="./" aria-label="Debatable climate change tool, new claim">Debatable<span>.</span></a>
     <button class="link-btn" id="new-claim" type="button" hidden>+ NEW CLAIM</button>
-    <span class="mono muted" id="tagline">CLIMATE CHANGE DEBATE TOOL</span>
+    <div class="top-right">
+      <span class="mono muted" id="tagline">CLIMATE CHANGE TOOL</span>
+      <details class="llm" id="llm">
+        <summary class="mono"><span class="dot" id="llm-dot"></span><span id="llm-summary">Language model</span></summary>
+        <form class="llm-panel" id="llm-form" autocomplete="off">
+          <label class="mono muted" for="llm-provider">PROVIDER</label>
+          <select id="llm-provider"></select>
+          <label class="mono muted" for="llm-baseUrl">BASE URL</label>
+          <input id="llm-baseUrl" type="url" spellcheck="false" placeholder="https://…">
+          <label class="mono muted" for="llm-apiKey">API KEY</label>
+          <input id="llm-apiKey" type="password" spellcheck="false" autocomplete="off" placeholder="paste your key">
+          <label class="mono muted" for="llm-model">MODEL</label>
+          <input id="llm-model" type="text" spellcheck="false" placeholder="model name">
+          <p class="hint" id="llm-help"></p>
+          <label class="check"><input id="llm-remember" type="checkbox"> Remember my key on this device</label>
+          <p class="hint">No server sits behind this page: your key stays in your browser and goes only to the provider above. Unless you tick the box, it is forgotten when you close the tab.</p>
+          <div class="llm-actions">
+            <button class="btn quiet small" id="llm-test" type="button">Test connection</button>
+            <span class="hint" id="llm-test-result" role="status"></span>
+          </div>
+        </form>
+      </details>
+    </div>
   </header>
 
   <main>
@@ -32,7 +54,7 @@
       <ol class="steps mono muted">
         <li><span class="accent">01</span> Analyze the claim meaning</li>
         <li><span class="accent">02</span> Find scientific evidences</li>
-        <li><span class="accent">03</span> smth</li>
+        <li><span class="accent">03</span> Critical evaluation <span class="soon">(coming soon)</span></li>
       </ol>
       <p class="notice" id="index-notice" hidden></p>
     </section>
@@ -49,6 +71,6 @@
     </section>
   </main>
 </div>
-<script src="/static/app.js"></script>
+<script type="module" src="static/app.js"></script>
 </body>
 </html>

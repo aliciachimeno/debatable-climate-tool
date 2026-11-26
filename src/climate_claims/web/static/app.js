@@ -1,4 +1,6 @@
-"use strict";
+import { detectServer, createServerBackend } from "./js/server-backend.js";
+import { createBrowserBackend } from "./js/browser-backend.js";
+import { initSettings } from "./js/settings.js";
 
 const $ = (id) => document.getElementById(id);
 const TYPE_LABEL = {
@@ -13,7 +15,9 @@ const EVIDENCE_GROUPS = [["claim", "The claim"], ["implied_argument", "Implied a
 let evidenceGroup = "claim";
 
 let run = 0;            // increments with every new claim, so stale responses are ignored
-let pollTimer = null;
+let abort = null;       // cancels the requests of the claim being replaced
+let backend = null;     // server (claims serve) or browser (GitHub Pages)
+let settings = null;    // the Language model box; only in browser mode
 
 /* ---------- tiny DOM helper (all text goes through textContent: model output is untrusted) ---------- */
 function el(tag, props = {}, ...kids) {
@@ -28,16 +32,6 @@ function el(tag, props = {}, ...kids) {
   return node;
 }
 function clear(node) { node.replaceChildren(); return node; }
-
-/* ---------- api ---------- */
-async function api(path, body) {
-  const res = await fetch(path, body ? {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  } : undefined);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || `Request failed (${res.status})`);
-  return data;
-}
 
 /* ---------- tabs ---------- */
 function showTab(name) {
@@ -121,6 +115,13 @@ function prettyDoc(name) {
 }
 function pageText(p) { return p.length === 1 ? `p. ${p[0]}` : `pp. ${p[0]}–${p[p.length - 1]}`; }
 
+function referenceNode(f) {
+  const text = `${f.label || prettyDoc(f.document)} · ${pageText(f.pages)}`;
+  return /^https:\/\//.test(f.url || "")
+    ? el("a", { href: f.url, target: "_blank", rel: "noopener noreferrer", text })
+    : el("span", { text });
+}
+
 function findingNode(f) {
   const strength = [f.likelihood, f.confidence && `${f.confidence} confidence`, f.stated_as_fact && "stated as fact"].filter(Boolean);
   const also = f.also_in || [];
@@ -129,7 +130,7 @@ function findingNode(f) {
     el("blockquote", { text: `“${f.quote}”` }),
     el("div", { class: "meta" },
       STANCE_LABEL[f.stance] ? el("span", { class: "stance " + f.stance, text: STANCE_LABEL[f.stance] }) : null,
-      el("span", { text: `${prettyDoc(f.document)} · ${pageText(f.pages)}` }),
+      referenceNode(f),
       strength.length ? el("span", { class: "strength", text: strength.join(" · ") }) : null),
     also.length ? el("details", { class: "also" },
       el("summary", { text: `Also stated in ${also.length} other ${also.length === 1 ? "document" : "documents"}` }),
@@ -138,11 +139,6 @@ function findingNode(f) {
 function entryNode(e) {
   return el("section", { class: "q" },
     el("h2", {}, el("span", { class: "tag", text: ABOUT_LABEL[e.about] || e.about.toUpperCase() }), e.query),
-    e.supporting || e.refuting ? el("details", { class: "also looks-for" },
-      el("summary", { text: "What we looked for" }),
-      el("ul", {},
-        e.supporting ? el("li", { text: "Supporting evidence would say: " + e.supporting }) : null,
-        e.refuting ? el("li", { text: "Refuting evidence would say: " + e.refuting }) : null)) : null,
     e.findings.map(findingNode),
     e.error ? el("p", { class: "errline", text: "The model could not answer this question (" + e.error + ")." })
       : !e.findings.length ? el("p", { class: "empty", text: "No verified evidence in the indexed documents." }) : null);
@@ -156,7 +152,7 @@ function renderEvidence(claim, entries, state) {
   if (state.running) {
     const pct = state.total ? Math.round((100 * state.done) / state.total) : 5;
     panel.append(el("div", { class: "progress", role: "status" },
-      el("span", { class: "mono muted", text: state.total ? `SEARCHING OFFICIAL DOCUMENTS · ${state.done} OF ${state.total}` : "SEARCHING OFFICIAL DOCUMENTS…" }),
+      el("span", { class: "mono muted", text: state.total ? `SEARCHING OFFICIAL DOCUMENTS · ${state.done} OF ${state.total}` : (state.status || "SEARCHING OFFICIAL DOCUMENTS…").toUpperCase() }),
       el("div", { class: "bar" }, el("i", { style: `width:${pct}%` }))));
   }
   // one button per group; while the search runs all show, afterwards only groups that exist
@@ -185,63 +181,72 @@ function renderEvidence(claim, entries, state) {
   badge.textContent = total;
 }
 
-function pollEvidence(jobId, claim, myRun, retry) {
-  clearTimeout(pollTimer);
-  const tick = async () => {
-    if (myRun !== run) return;
-    try {
-      const j = await api("/api/evidence/" + jobId);
-      if (myRun !== run) return;
-      const running = j.status === "running";
-      const entries = j.status === "done" ? j.result.evidence : j.entries;
-      renderEvidence(claim, entries, { running, done: j.done, total: j.total, error: j.status === "error" ? j.error : null, retry,
-        notice: j.status === "done" ? j.result.plan_error : null });
-      if (running) pollTimer = setTimeout(tick, 1500);
-    } catch (err) {
-      if (myRun === run) renderEvidence(claim, [], { running: false, error: err.message, retry });
-    }
-  };
-  tick();
-}
-
 /* ---------- flow ---------- */
-async function startEvidence(analysis, myRun) {
+const aborted = (err) => err && err.name === "AbortError";
+
+async function startEvidence(analysis, myRun, signal) {
   const claim = analysis.claim;
-  const retry = () => startEvidence(analysis, myRun);
-  renderEvidence(claim, [], { running: true, done: 0, total: 0 });
+  let entries = [];
+  const retry = () => startEvidence(analysis, myRun, signal);
+  renderEvidence(claim, entries, { running: true, done: 0, total: 0 });
   try {
-    const { job } = await api("/api/evidence", { analysis });
-    pollEvidence(job, claim, myRun, retry);
+    await backend.evidence(analysis, {
+      signal,
+      onUpdate: (u) => {
+        if (myRun !== run) return;
+        entries = u.entries;
+        renderEvidence(claim, entries, { ...u, retry });
+      },
+    });
   } catch (err) {
-    if (myRun === run) renderEvidence(claim, [], { running: false, error: err.message, retry });
+    if (myRun !== run || aborted(err)) return;
+    renderEvidence(claim, entries, { running: false, error: err.message, retry });
   }
 }
 
 async function analyseClaim(claim) {
+  await backendReady;
   const myRun = ++run;
-  clearTimeout(pollTimer);
+  if (abort) abort.abort();
+  abort = new AbortController();
+  const { signal } = abort;
   $("home").hidden = true; $("result").hidden = false; $("new-claim").hidden = false; $("tagline").hidden = true;
   $("evidence-badge").hidden = true;
   evidenceGroup = "claim";
   clear($("panel-evidence"));
   showTab("debate");
+
+  if (backend.needsSettings && !settings.ready()) {
+    clear($("panel-debate")).append(el("h1", { class: "claim-text", text: claim }));
+    renderError($("panel-debate"), "Connect a language model first: open the “Language model” box at the top right, add your API key and the model name, then try again.", () => analyseClaim(claim));
+    settings.open();
+    return;
+  }
   renderDebateLoading(claim);
   try {
-    const analysis = await api("/api/analyze", { claim });
+    backend.prepare();               // browser mode: start loading the index while the model reads the claim
+    const analysis = await backend.analyze(claim, { signal });
     if (myRun !== run) return;
     renderDebate(analysis);
-    startEvidence(analysis, myRun);           // evidence loads in the background
+    startEvidence(analysis, myRun, signal);          // evidence loads in the background
   } catch (err) {
-    if (myRun !== run) return;
+    if (myRun !== run || aborted(err)) return;
     clear($("panel-debate")).append(el("h1", { class: "claim-text", text: claim }));
     renderError($("panel-debate"), err.message, () => analyseClaim(claim));
   }
 }
 
 function reset() {
-  run++; clearTimeout(pollTimer);
+  run++;
+  if (abort) abort.abort();
   $("result").hidden = true; $("home").hidden = false; $("new-claim").hidden = true; $("tagline").hidden = false;
   $("claim").focus();
+}
+
+function showNotice(text) {
+  const n = $("index-notice");
+  n.textContent = text;
+  n.hidden = !text;
 }
 
 $("claim-form").addEventListener("submit", (e) => {
@@ -255,10 +260,20 @@ $("claim").addEventListener("keydown", (e) => {
 $("new-claim").onclick = reset;
 document.querySelector(".brand").addEventListener("click", (e) => { e.preventDefault(); reset(); });
 
-api("/api/health").then((h) => {
-  if (!h.index_ready) {
-    const n = $("index-notice");
-    n.textContent = "The document index is not ready: " + (h.message || "run `claims index`") + " You can still analyse claims, but the evidence tab will be empty.";
-    n.hidden = false;
+/* ---------- which backend? ---------- */
+const NEEDS_MODEL = "This page has no server. Connect your own language model with the “Language model” box at the top right; your key stays in your browser.";
+
+const backendReady = (async () => {
+  const health = await detectServer();
+  if (health) {                                       // `claims serve`: the server owns the model settings
+    backend = createServerBackend(health);
+    $("llm").hidden = true;
+    showNotice(backend.notice);
+    return;
   }
-}).catch(() => {});
+  settings = initSettings();
+  backend = createBrowserBackend({ getConfig: settings.get });
+  const refresh = () => showNotice(settings.ready() ? "" : NEEDS_MODEL);
+  $("llm-form").addEventListener("input", refresh);
+  refresh();
+})();

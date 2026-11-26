@@ -116,7 +116,8 @@ def run_evidence(analysis: Analysis, retriever: Retriever | None = None, on_entr
     evidence = [dedupe_findings([e])[0] for e in results]
     return {
         "claim": analysis.claim,
-        "llm_model": settings.model,
+        "llm_provider": settings.llm_provider,
+        "llm_model": settings.llm_model,
         "embedding_model": settings.emb_model,
         "context_sentences": settings.context,
         "index_documents": {d: sha[:12] for d, sha in retriever.store.doc_hashes().items()},

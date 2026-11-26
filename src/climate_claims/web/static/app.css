@@ -106,3 +106,26 @@ details.also ul { margin: 8px 0 0; padding-left: 18px; }
   .claim-row textarea { font-size: 20px; }
   .q h2 { flex-direction: column; gap: 4px; }
 }
+/* language model box: secondary, top right, folds away */
+.top-right { display: flex; align-items: center; gap: 24px; }
+.llm { position: relative; }
+.llm summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--sheet); color: var(--muted); max-width: 300px; }
+.llm summary::-webkit-details-marker { display: none; }
+.llm summary::after { content: "▾"; font-size: 10px; }
+.llm[open] summary::after { content: "▴"; }
+.llm summary:hover { color: var(--accent); }
+.llm summary span:last-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #c9d6d2; }
+.dot.on { background: var(--accent); }
+.llm-panel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: 340px; max-width: calc(100vw - 40px); padding: 18px 20px; background: var(--sheet); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(18, 51, 47, .12); }
+.llm-panel label { display: block; margin: 12px 0 4px; }
+.llm-panel label:first-child { margin-top: 0; }
+.llm-panel input[type=url], .llm-panel input[type=password], .llm-panel input[type=text], .llm-panel select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 14px; }
+.llm-panel .check { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: 13px; color: var(--ink); }
+.llm-panel .hint { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.llm-panel .hint.ok { color: var(--accent); }
+.llm-panel .hint.err { color: #8a3b1f; }
+.llm-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.btn.small { padding: 8px 14px; font-size: 13px; }
+.soon { opacity: .7; }
+@media (max-width: 720px) { .top-right { gap: 12px; } #tagline { display: none; } }

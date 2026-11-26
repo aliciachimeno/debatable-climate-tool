@@ -1,5 +1,6 @@
 import requests
 
+from climate_claims.analysis import plan
 from climate_claims.evidence import pipeline
 from climate_claims.schemas import Ambiguity, Analysis, TypeMismatch, Window
 
@@ -30,7 +31,11 @@ def test_order_preserved_and_errors_isolated(monkeypatch):
             raise requests.Timeout("slow")
         return {"findings": [{"statement": "s", "quote": "Alpha.", "passage_id": "d.pdf:0-1"}]}
 
+    def no_plan(*args, **kwargs):                      # planning must not need a real model in tests
+        raise ValueError("no plan in this test")
+
     monkeypatch.setattr(pipeline, "chat_json", fake_chat)
+    monkeypatch.setattr(plan, "chat_json", no_plan)
     monkeypatch.setattr(pipeline, "load_prompt", lambda name: "sys")
 
     out = pipeline.run_evidence(make_analysis(), FakeRetriever())

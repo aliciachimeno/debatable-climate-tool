@@ -1,4 +1,4 @@
-# Climate Claims
+# Debatable climate change tool
 
 Analyse a claim about climate change and find verified evidence for it in IPCC AR6 WG1 documents.
 
@@ -12,14 +12,18 @@ Requires Python >= 3.11.
 uv sync                      # or: pip install -e .
 ```
 
-Configuration is read from the environment (or a `.env` file):
+Configuration is read from the environment (or a `.env` file; see `.env.example`). It is only used by the command line and by `claims serve`: the GitHub Pages site asks for the same values in its *Language model* box instead.
 
 | Variable | Meaning |
 |---|---|
-| `OPENWEBUI_URL` | Base URL of the Open WebUI server |
-| `OPENWEBUI_API_KEY` | API key for that server (required, never commit it) |
-| `OPENWEBUI_MODEL` | Model name served by Open WebUI (required) |
-| `LLM_TIMEOUT` | Request timeout in seconds (default 600) |
+| `LLM_PROVIDER` | `openai` (any OpenAI-compatible server: OpenAI, OpenRouter, Open WebUI, Ollama, vLLM, LM Studio...; the default) or `anthropic` (Claude API) |
+| `LLM_BASE_URL` | everything before `/chat/completions`, e.g. `https://api.openai.com/v1` or `https://your-server/api` for Open WebUI. Not needed for `anthropic` |
+| `LLM_API_KEY` | your key (optional for a server on localhost). Never commit it |
+| `LLM_MODEL` | model name |
+| `LLM_TIMEOUT` | request timeout in seconds (default 600) |
+| `LLM_WORKERS` | parallel model calls in the evidence step (default 4) |
+
+The old `OPENWEBUI_URL`, `OPENWEBUI_API_KEY` and `OPENWEBUI_MODEL` still work.
 
 Other settings (embedding model, context size, top-k, paths) live in `src/climate_claims/config.py`.
 
@@ -33,7 +37,10 @@ claims check-index           # verify the index is consistent
 claims analyze "The climate has always changed"   # stage 1 only -> analysis.json
 claims evidence runs/<run>/analysis.json          # stage 2 for a saved analysis
 claims run "The climate has always changed"       # stages 1 + 2 in one go
+claims serve                 # the web interface on http://127.0.0.1:8000 (model settings from the environment)
+claims export-web            # build the static site (docs/) for GitHub Pages
 pytest                       # tests need no network or API key
+node --test tests/web/*.test.mjs   # the browser code
 ```
 
 Each `analyze` / `run` writes to `runs/<YYYY-MM-DD>_<claim-slug>/`:
@@ -59,6 +66,24 @@ claim type (`descriptive_factual`, `causal_attribution`, `predictive`, `policy_v
 4. `verify.py` keeps a finding only if its quote appears literally (case and whitespace insensitive) in the cited window. Page numbers come from the index, never from the LLM.
 
 Findings that fail verification are discarded silently. An evidence entry with `error` means the model never returned valid JSON for that query.
+
+## The web page on GitHub Pages
+
+The page is static: there is no server, so it runs the whole pipeline in the visitor's browser. The evidence index is shipped as files (about 5 MB), the claim is embedded with the same small model (downloaded once, about 35 MB), and the language model is called **directly from the browser with the visitor's own key**. The key never touches this project: it stays in the browser's session storage (or local storage if the visitor ticks *Remember my key*).
+
+The *Language model* box at the top right unfolds to set provider, base URL, API key and model (OpenAI, Anthropic/Claude, OpenRouter, or any OpenAI-compatible server) and has a *Test connection* button. Because calls come from the browser, the provider must allow cross-origin (CORS) requests; OpenAI, Anthropic and OpenRouter do. A self-hosted or internal server may not, and an `https://` page cannot call a plain `http://` server except `http://localhost`.
+
+Publishing (the index is built once, anywhere, for example on a cluster node; the model is never needed for this step):
+
+```bash
+claims index          # build data/index (needs the PDFs in data/raw/...)
+claims export-web     # writes docs/ : the interface (copied from src/climate_claims/web/static) and docs/data
+git add docs && git commit -m "Update site" && git push
+```
+
+Then, once: **Settings → Pages → Deploy from a branch → `main` / `/docs`**. To try it locally: `python -m http.server -d docs`.
+
+`docs/` is generated: edit the interface in `src/climate_claims/web/static/` and run `claims export-web` again. The same files are served by `claims serve`, which uses the Python pipeline instead of the in-browser one.
 
 ## Known limits
 
