@@ -16,7 +16,7 @@ export const PROVIDERS = {
     help: 'Use a Claude model id from your Anthropic account.',
   },
   custom: {
-    label: 'Gepeto', kind: 'gepeto', baseUrl: '',
+    label: 'Gepeto', kind: 'openai', baseUrl: '',
     help: 'Enter everything before /chat/completions. Open WebUI: https://gepeto.bsc.es/api. ' +
           'Ollama: http://localhost:11434/v1. The server must allow requests from this page (CORS), ' +
           'and be reachable from your browser.',
