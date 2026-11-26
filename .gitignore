@@ -1,6 +1,6 @@
 .env
 .venv/
-data/index/
 runs/
 __pycache__/
 *:Zone.Identifier
+data/raw/
