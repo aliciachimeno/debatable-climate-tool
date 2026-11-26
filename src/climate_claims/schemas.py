@@ -92,7 +92,7 @@ class Finding:
 
 
 # ---- evidence plan: what to look for, derived from the analysis ----
-NEED_ORIGINS = ("claim", "implied_argument", "ambiguity", "assumption")   # also the display order
+NEED_ORIGINS = ("claim", "ambiguity", "assumption", "implied_argument")   # also the display order
 STANCES = ("supports", "refutes", "context")
 
 

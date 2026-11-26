@@ -10,8 +10,8 @@ const TYPE_LABEL = {
 const ABOUT_LABEL = { claim: "THE CLAIM", implied_argument: "IMPLIED ARGUMENT", ambiguity: "AMBIGUITY", assumption: "ASSUMPTION" };
 const STANCE_LABEL = { supports: "Supports this", refutes: "Contradicts this", context: "Context" };
 // Evidence is shown one group at a time: the claim first, the rest behind a button.
-const EVIDENCE_GROUPS = [["claim", "The claim"], ["implied_argument", "Implied argument"],
-  ["ambiguity", "Ambiguities"], ["assumption", "Assumptions"]];
+const EVIDENCE_GROUPS = [["claim", "The claim"], ["ambiguity", "Ambiguities"],
+  ["assumption", "Assumptions"], ["implied_argument", "Implied argument"]];
 let evidenceGroup = "claim";
 
 let run = 0;            // increments with every new claim, so stale responses are ignored
@@ -76,7 +76,6 @@ function renderDebate(a) {
   const panel = clear($("panel-debate"));
   const rows = [
     row("LITERAL MEANING", el("p", { text: a.literal_meaning })),
-    row("IMPLIED ARGUMENT", el("p", { text: a.implied_argument })),
     row("AMBIGUITIES", a.ambiguities.length
       ? el("ul", {}, a.ambiguities.map((x, i) => el("li", {},
           el("span", { class: "num", text: i + 1 }), el("b", { text: `“${x.term_or_relation}”` }),
@@ -89,6 +88,7 @@ function renderDebate(a) {
     rows.push(row("TYPE CHECK", el("p", {},
       el("b", { text: `${m.premise_type} → ${m.conclusion_type}. ` }), m.explanation)));
   }
+  rows.push(row("IMPLIED ARGUMENT", el("p", { text: a.implied_argument })));   // always last
   panel.append(
     el("div", { class: "sheet-head mono" }, el("span", { text: "CLAIM UNDER ANALYSIS" }),
       el("span", { text: "TYPE · " + (TYPE_LABEL[a.claim_type] || a.claim_type).toUpperCase(), title: a.type_reason })),

@@ -4,7 +4,7 @@ import { chatJson, ModelOutputError } from './llm.js';
 import { LLMError } from './providers.js';
 
 export const CLAIM_TYPES = new Set(['descriptive_factual', 'causal_attribution', 'predictive', 'policy_value']);
-export const NEED_ORIGINS = ['claim', 'implied_argument', 'ambiguity', 'assumption'];   // also the display order
+export const NEED_ORIGINS = ['claim', 'ambiguity', 'assumption', 'implied_argument'];   // also the display order
 export const STANCES = ['supports', 'refutes', 'context'];
 export const MAX_WINDOWS = 8;         // passages shown to the model per evidence need
 export const MAX_NEEDS = 10;
