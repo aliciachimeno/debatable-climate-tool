@@ -12,16 +12,12 @@ export const PROVIDERS = {
     help: 'Use a model id from your OpenAI account.',
   },
   anthropic: {
-    label: 'Anthropic (Claude)', kind: 'anthropic', baseUrl: 'https://api.anthropic.com',
+    label: 'Anthropic', kind: 'anthropic', baseUrl: 'https://api.anthropic.com',
     help: 'Use a Claude model id from your Anthropic account.',
   },
-  openrouter: {
-    label: 'OpenRouter', kind: 'openai', baseUrl: 'https://openrouter.ai/api/v1',
-    help: 'Model ids look like provider/model-name.',
-  },
   custom: {
-    label: 'Other OpenAI-compatible server', kind: 'openai', baseUrl: '',
-    help: 'Enter everything before /chat/completions. Open WebUI: https://your-server/api. ' +
+    label: 'Gepeto', kind: 'gepeto', baseUrl: '',
+    help: 'Enter everything before /chat/completions. Open WebUI: https://gepeto.bsc.es/api. ' +
           'Ollama: http://localhost:11434/v1. The server must allow requests from this page (CORS), ' +
           'and be reachable from your browser.',
   },
