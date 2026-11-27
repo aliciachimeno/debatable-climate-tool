@@ -10,6 +10,7 @@ after changing the front-end or the index); do not edit it by hand.
   docs/data/vec_map.json          flat [docIdx, sentenceIdx, ...]  which sentence each vector belongs to
   docs/data/vectors.i8            int8 matrix (count x dim): vector * 127, rows are unit length
   docs/data/sources.json          document labels and links (data/raw/sources.json)
+  docs/data/provenance.json       what each sentence cites: papers, sections, figures (claims provenance)
   docs/data/prompts/              the same prompt files the command-line tool uses
 """
 import json
@@ -68,6 +69,8 @@ def export_web(out_dir: Path | None = None, store: Store | None = None) -> Path:
     _dump(out / "vec_map.json", [n for sid in ids.tolist() for n in where[sid]])
     quantize(vecs).tofile(out / "vectors.i8")
     _dump(out / "sources.json", sources)
+    if Path(settings.provenance_file).exists():       # optional: the evidence chain of each finding
+        shutil.copyfile(settings.provenance_file, out / "provenance.json")
     _dump(out / "meta.json", {
         "emb_model": settings.emb_model,
         "query_prefix": QUERY_PREFIX,

@@ -7,7 +7,7 @@ import { loadBrowserEmbedder } from './embedder.js';
 
 export function createBrowserBackend({ getConfig, dataUrl = 'data/', fetchImpl, loadEmbedder = loadBrowserEmbedder }) {
   const f = fetchImpl ?? ((...a) => fetch(...a));
-  let promptsP = null, retrieverP = null, sourcesP = null;
+  let promptsP = null, retrieverP = null, sourcesP = null, provenanceP = null;
   let onStatus = () => {};
 
   const text = async (name) => {
@@ -25,6 +25,11 @@ export function createBrowserBackend({ getConfig, dataUrl = 'data/', fetchImpl, 
 
   const sources = () => (sourcesP ??= retry(async () => JSON.parse(await text('sources.json')),
                                             () => { sourcesP = null; }));
+
+  // optional: without provenance.json the findings simply have no evidence chain
+  const provenance = () => (provenanceP ??= (async () => {
+    try { return JSON.parse(await text('provenance.json')); } catch { return null; }
+  })());
 
   const retriever = () => (retrieverP ??= retry(async () => {
     onStatus('Loading the evidence index…');
@@ -48,10 +53,10 @@ export function createBrowserBackend({ getConfig, dataUrl = 'data/', fetchImpl, 
       const cfg = getConfig();
       const shown = [];
       onStatus = (status) => onUpdate({ entries: [], done: 0, total: 0, running: true, status });
-      const [r, p, s] = await Promise.all([retriever(), prompts(), sources()]);
+      const [r, p, s, prov] = await Promise.all([retriever(), prompts(), sources(), provenance()]);
       onUpdate({ entries: [], done: 0, total: 0, running: true, status: 'Planning the evidence search…' });
       const result = await runEvidence(cfg, analysis, r, p, s, {
-        signal, fetchImpl,
+        signal, fetchImpl, provenance: prov,
         onEntry: (entry, done, total) => { shown.push(entry); onUpdate({ entries: [...shown], done, total, running: true }); },
       });
       onUpdate({ entries: result.evidence, done: result.evidence.length, total: result.evidence.length,

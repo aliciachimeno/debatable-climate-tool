@@ -89,6 +89,8 @@ class Finding:
     also_in: list[dict] = field(default_factory=list)   # same quote found in other documents
     also_in: list[dict] = field(default_factory=list)   # same quote found in other documents
     stance: str | None = None           # supports | refutes | context, relative to the proposition
+    span: list[int] | None = None       # [first, last] sentence index of the quote in its document
+    provenance: dict | None = None      # what the quote points to: papers, sections, figures (provenance/chain.py)
 
 
 # ---- evidence plan: what to look for, derived from the analysis ----
@@ -118,4 +120,4 @@ class EvidenceNeed:
         if not proposition or origin not in NEED_ORIGINS or not queries:
             raise ValueError(f"Invalid evidence need: {d!r}")
         return cls("", proposition, origin, str(d.get("source_text", "")).strip(),
-                   str(d.get("supporting", "")).strip(), str(d.get("refuting", "")).strip(), queries[:4])
+                   str(d.get("supporting", "")).strip(), str(d.get("refuting", "")).strip(), queries[:4])

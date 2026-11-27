@@ -84,6 +84,14 @@ def cmd_run(args):
     print(f"\nSaved in: {run_dir}", file=sys.stderr)
 
 
+def cmd_provenance(args):
+    from .indexing.store import Store
+    from .provenance import build_provenance, coverage_report
+    result = build_provenance(Store())
+    print(coverage_report(result))
+    print(f"\nSaved: {settings.provenance_file}", file=sys.stderr)
+
+
 def cmd_export_web(args):
     from .web_export import export_web
     out = export_web(args.out)
@@ -116,6 +124,9 @@ def main(argv=None):
     s = sub.add_parser("run", help="analyze + evidence in one go")
     s.add_argument("claim")
     s.set_defaults(func=cmd_run)
+
+    s = sub.add_parser("provenance", help="link every sentence to its cited papers, sections and figures (run after index)")
+    s.set_defaults(func=cmd_provenance)
 
     s = sub.add_parser("export-web", help="build the static site (docs/) for GitHub Pages from the index")
     s.add_argument("--out", default=None, help=f"site folder (default: {settings.web_dir})")

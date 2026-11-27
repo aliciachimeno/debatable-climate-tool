@@ -2,6 +2,7 @@
 // as the Python pipeline, so the interface can show either.
 import { chatJson, ModelOutputError } from './llm.js';
 import { LLMError } from './providers.js';
+import { forSpan } from './provenance.js';
 
 export const CLAIM_TYPES = new Set(['descriptive_factual', 'causal_attribution', 'predictive', 'policy_value']);
 export const NEED_ORIGINS = ['claim', 'ambiguity', 'assumption', 'implied_argument'];   // also the display order
@@ -128,8 +129,8 @@ export function needPrompt(need, windows) {
 
 export const norm = (s) => s.toLowerCase().split(/\s+/).filter(Boolean).join(' ');
 
-/** Pages spanned by `quote` if it appears verbatim in the window, else null. */
-export function locate(quote, window) {
+/** Positions [first, last] in window.sentences of the sentences `quote` spans, or null. */
+function spanOf(quote, window) {
   const q = norm(quote);
   if (!q) return null;
   const sents = window.sentences.map(([, t]) => norm(t));
@@ -140,9 +141,22 @@ export function locate(quote, window) {
   if (at < 0) return null;
   const end = at + q.length - 1;
   const lastStartBefore = (p) => starts.reduce((acc, s, i) => (s <= p ? i : acc), 0);
+  return [lastStartBefore(at), lastStartBefore(end)];
+}
+
+/** Pages spanned by `quote` if it appears verbatim in the window, else null. */
+export function locate(quote, window) {
+  const span = spanOf(quote, window);
+  if (!span) return null;
   const pages = new Set();
-  for (let i = lastStartBefore(at); i <= lastStartBefore(end); i++) pages.add(window.sentences[i][0]);
+  for (let i = span[0]; i <= span[1]; i++) pages.add(window.sentences[i][0]);
   return [...pages].sort((x, y) => x - y);
+}
+
+/** [first, last] sentence index (in the document) of the quote, or null. */
+export function locateSpan(quote, window) {
+  const span = spanOf(quote, window);
+  return span ? [window.lo + span[0], window.lo + span[1]] : null;
 }
 
 const NUMBER = /\d+(?:[.,]\d+)?/g;
@@ -181,9 +195,16 @@ export function verify(raw, windows) {
       statement, quote, document: w.doc, pages, passage_id: windowId(w),
       label: '', url: '', ...strength(quote),
       also_in: [], stance: STANCES.includes(f.stance) ? f.stance : null,
+      span: locateSpan(quote, w), provenance: null,
     });
   }
   return good;
+}
+
+/** What the quote points to (papers, sections, figures), from provenance.json when it is there. */
+export function addProvenance(finding, provenance, sources) {
+  if (provenance && finding.span) finding.provenance = forSpan(provenance, sources, finding.document, ...finding.span);
+  return finding;
 }
 
 /** Label and link (to the cited page) from sources.json. */
@@ -233,13 +254,13 @@ export function dedupeFindings(entries) {
 }
 
 // ---------- the whole evidence run ----------
-async function ask(cfg, system, need, windows, sources, { signal, fetchImpl }) {
+async function ask(cfg, system, need, windows, sources, { signal, fetchImpl, provenance }) {
   const entry = { about: need.origin, need_id: need.id, query: need.proposition,
                   supporting: need.supporting, refuting: need.refuting, queries: need.queries, findings: [] };
   try {
     const data = await chatJson(cfg, system, needPrompt(need, windows), { temperature: 0.1, signal, fetchImpl });
     const verified = verify(Array.isArray(data.findings) ? data.findings : [], windows);
-    entry.findings = verified.map((f) => addLink(f, sources));
+    entry.findings = verified.map((f) => addProvenance(addLink(f, sources), provenance, sources));
   } catch (e) {
     if (!(e instanceof ModelOutputError || e instanceof LLMError)) throw e;     // aborts and bugs propagate
     entry.error = e.message;                                                     // a failing need is recorded, not fatal
@@ -250,8 +271,8 @@ async function ask(cfg, system, need, windows, sources, { signal, fetchImpl }) {
 /** Plan, retrieve, extract and verify. `onEntry(entry, done, total)` is called as results arrive,
  *  always in plan order (an entry that finishes early waits for the ones before it). */
 export async function runEvidence(cfg, analysis, retriever, prompts, sources = {},
-                                  { signal, fetchImpl, onEntry, workers = DEFAULT_WORKERS } = {}) {
-  const io = { signal, fetchImpl };
+                                  { signal, fetchImpl, onEntry, workers = DEFAULT_WORKERS, provenance = null } = {}) {
+  const io = { signal, fetchImpl, provenance };
   const documents = retriever.meta.docs.map((d) => d.name);
   const { needs, planError } = await planNeeds(cfg, analysis, documents, prompts, io);
 

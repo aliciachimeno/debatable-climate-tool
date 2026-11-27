@@ -80,6 +80,10 @@ class Store:
             "SELECT page, text FROM sentences WHERE doc=? AND idx BETWEEN ? AND ? ORDER BY idx",
             (doc, lo, hi)).fetchall()
 
+    def doc_rows(self, doc: str) -> list[tuple[int, int, str]]:
+        return self.db.execute(
+            "SELECT idx, page, text FROM sentences WHERE doc=? ORDER BY idx", (doc,)).fetchall()
+
     def stats(self) -> list[tuple[str, int, int]]:
         return self.db.execute(
-            "SELECT doc, COUNT(*), COALESCE(SUM(embedded),0) FROM sentences GROUP BY doc").fetchall()
+            "SELECT doc, COUNT(*), COALESCE(SUM(embedded),0) FROM sentences GROUP BY doc").fetchall()

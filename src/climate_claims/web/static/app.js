@@ -122,6 +122,70 @@ function referenceNode(f) {
     : el("span", { text });
 }
 
+/* ---------- evidence chain: what the quote itself cites (papers, chapter sections, figures) ---------- */
+const matchNote = (c) => (c >= 1 ? "Exact match in the reference list" : "Likely match in the reference list");
+const UNLINKED_NOTE = { not_indexed: "not in the indexed documents", not_found: "not found", no_reference_list: "no reference list" };
+const isLinked = (x) => x.status === "resolved" || x.status === "ambiguous";
+
+function safeLink(url, text) {
+  return /^https:\/\//.test(url || "") ? el("a", { href: url, target: "_blank", rel: "noopener noreferrer", text }) : null;
+}
+function chainCard(kind, tag, label, sub, note, body) {
+  return el("details", { class: "cnode " + kind },
+    el("summary", {},
+      el("span", { class: "ctag", text: tag }),
+      el("span", { class: "clabel", text: label }),
+      sub ? el("span", { class: "csub", text: sub }) : null,
+      note ? el("span", { class: "cnote", text: note }) : null),
+    el("div", { class: "cbody" }, body.filter(Boolean)));
+}
+function referenceBody(r) {
+  return [el("p", { text: r.text }),
+    el("p", { class: "clinks" }, safeLink(r.doi_url, "DOI ↗"), safeLink(r.url, `Reference list · ${pageText([r.page])} ↗`))];
+}
+function paperCard(p) {
+  const tag = p.type === "assessment" ? "IPCC REPORT" : "STUDY";
+  if (p.status === "ambiguous") {
+    return chainCard("paper", tag, p.label, "Several possible matches", "Not sure which one",
+      (p.candidates || []).map((c) => el("div", { class: "cand" }, referenceBody(c))));
+  }
+  const r = p.reference;
+  return chainCard("paper", tag, p.label, r.title.length > 110 ? r.title.slice(0, 110).trimEnd() + "…" : r.title,
+    matchNote(p.confidence), referenceBody(r));
+}
+function sectionCard(s) {
+  return chainCard("sec", "SECTION", s.label, s.title || "", "",
+    [el("p", { class: "clinks" }, safeLink(s.url, `Open in the report · ${pageText([s.page])} ↗`))]);
+}
+function figureCard(f) {
+  const tag = (f.kind || "figure").toUpperCase();
+  return chainCard("fig", tag, f.label, f.title || "", "",
+    [el("p", { class: "clinks" }, safeLink(f.url, `Open the page · ${pageText([f.page])} ↗`),
+       safeLink(f.figure_url, "Figure ↗"), safeLink(f.data_url, "Data ↗"), safeLink(f.code_url, "Code ↗"),
+       safeLink(f.index_url, "All AR6 WGI figures ↗"))]);
+}
+function chainColumn(title, kind, cards) {
+  return cards.length ? el("div", { class: "ccol " + kind }, el("h3", { text: title }), cards) : null;
+}
+function provenanceNode(p) {
+  if (!p) return null;
+  const papers = p.papers.filter(isLinked), sections = p.sections.filter(isLinked), figures = p.figures.filter(isLinked);
+  const unlinked = [...p.sections, ...p.figures, ...p.papers].filter((x) => !isLinked(x));
+  if (!papers.length && !sections.length && !figures.length && !unlinked.length) return null;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const count = [papers.length && plural(papers.length, "reference", "references"),
+    sections.length && plural(sections.length, "section", "sections"),
+    figures.length && plural(figures.length, "figure or table", "figures and tables")].filter(Boolean).join(" · ");
+  return el("details", { class: "chain" },
+    el("summary", {}, el("span", { class: "mono", text: "EVIDENCE CHAIN" }), el("span", { class: "ccount", text: count || "nothing linked" })),
+    el("div", { class: "cgrid" },
+      chainColumn("Chapter text", "sec", sections.map(sectionCard)),
+      chainColumn("Studies cited", "paper", papers.map(paperCard)),
+      chainColumn("Figures & data", "fig", figures.map(figureCard))),
+    unlinked.length ? el("p", { class: "cunlinked", text: "Also cited, not linked here: " +
+      unlinked.map((x) => `${x.label} (${UNLINKED_NOTE[x.status] || x.status})`).join("; ") + "." }) : null);
+}
+
 function findingNode(f) {
   const strength = [f.likelihood, f.confidence && `${f.confidence} confidence`, f.stated_as_fact && "stated as fact"].filter(Boolean);
   const also = f.also_in || [];
@@ -132,6 +196,7 @@ function findingNode(f) {
       STANCE_LABEL[f.stance] ? el("span", { class: "stance " + f.stance, text: STANCE_LABEL[f.stance] }) : null,
       referenceNode(f),
       strength.length ? el("span", { class: "strength", text: strength.join(" · ") }) : null),
+    provenanceNode(f.provenance),
     also.length ? el("details", { class: "also" },
       el("summary", { text: `Also stated in ${also.length} other ${also.length === 1 ? "document" : "documents"}` }),
       el("ul", {}, also.map((o) => el("li", { text: `${prettyDoc(o.document)} · ${pageText(o.pages)}` })))) : null);

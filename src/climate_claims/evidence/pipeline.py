@@ -7,6 +7,7 @@ from ..analysis.plan import make_plan
 from ..config import settings
 from ..llm import chat_json, load_prompt
 from ..retrieval.retriever import Retriever
+from ..provenance import ProvenanceIndex
 from ..schemas import Analysis, EvidenceNeed, Window
 from .dedupe import dedupe_findings
 from .verify import verify
@@ -65,6 +66,10 @@ def _ask(system: str, need: EvidenceNeed, windows: list[Window]) -> dict:
         data = chat_json(system, _prompt(need, windows), temperature=0.1)
         raw = data.get("findings", [])
         verified = verify(raw if isinstance(raw, list) else [], windows)
+        provenance = ProvenanceIndex.cached()
+        for f in verified:
+            if provenance and f.span:
+                f.provenance = provenance.for_span(f.document, *f.span)
         entry["findings"] = [asdict(add_link(f)) for f in verified]
     except (ValueError, requests.RequestException) as e:   # bad JSON, timeout, network
         entry["error"] = str(e)
@@ -124,4 +129,4 @@ def run_evidence(analysis: Analysis, retriever: Retriever | None = None, on_entr
         "plan": [asdict(n) for n in needs],
         "plan_error": plan_error,
         "evidence": evidence,
-    }
+    }

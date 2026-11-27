@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   locate, verify, strength, validateAnalysis, buildQueries, basicNeeds, parseNeeds, formatWindows, windowId,
-  dedupeFindings, sourceRank, gatherWindows, needPrompt, addLink, runEvidence, analyze,
+  dedupeFindings, sourceRank, gatherWindows, needPrompt, addLink, runEvidence, analyze, locateSpan, addProvenance,
 } from '../../src/climate_claims/web/static/js/pipeline.js';
 
 const win = () => ({ doc: 'doc.pdf', lo: 0, hi: 2, score: 0.9, hitSentences: ['Gamma delta.'],
@@ -29,7 +29,7 @@ test('verify keeps only findings whose quote is in the cited window', () => {
   assert.equal(out.length, 1);
   assert.deepEqual({ ...out[0] }, { statement: 'sa', quote: 'Gamma delta.', document: 'doc.pdf', pages: [1],
     passage_id: 'doc.pdf:0-2', label: '', url: '', likelihood: null, confidence: null, stated_as_fact: false,
-    also_in: [], stance: 'refutes' });
+    also_in: [], stance: 'refutes', span: [0 + 1, 0 + 1], provenance: null });
 });
 
 test('invalid stance falls back to null', () => {
@@ -196,4 +196,15 @@ test('analyze adds the claim and retries invalid structure', async () => {
   const a = await analyze(OPENAI_CFG, 'The climate has always changed', prompts, { fetchImpl: async () => answers.shift() });
   assert.equal(a.claim, 'The climate has always changed');
   assert.equal(answers.length, 0);
+});
+
+test('locateSpan gives document sentence indexes; addProvenance attaches the chain', () => {
+  const w = { ...win(), lo: 5, hi: 7 };
+  assert.deepEqual(locateSpan('Gamma delta. Epsilon zeta.', w), [6, 7]);
+  assert.equal(locateSpan('made up', w), null);
+  const prov = { edges: { 'doc.pdf': { 6: [{ k: 'section', l: 'Section 9.9', s: 'not_indexed' }] } }, docs: {} };
+  const f = addProvenance({ document: 'doc.pdf', span: [6, 7] }, prov, {});
+  assert.deepEqual(f.provenance, { papers: [], sections: [{ label: 'Section 9.9', status: 'not_indexed' }], figures: [] });
+  assert.equal(addProvenance({ document: 'doc.pdf', span: null }, prov, {}).provenance, undefined);
+  assert.equal(addProvenance({ document: 'doc.pdf', span: [6, 6] }, null, {}).provenance, undefined);
 });

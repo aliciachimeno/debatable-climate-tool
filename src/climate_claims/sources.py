@@ -20,3 +20,8 @@ def add_link(finding: Finding) -> Finding:
     finding.label = info.get("label", finding.document)
     finding.url = page_url(info.get("url", ""), finding.pages[0])
     return finding
+
+
+def source_url(doc: str, page: int) -> str:
+    """Link to a page of a source document ('' when sources.json has no URL for it)."""
+    return page_url(_load().get(doc, {}).get("url", ""), page)
